@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Customer Settlement Prototype</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
+  :root {
+    --confidence: #1A0826;
+    --gray-800: #544A5A;
+    --gray-600: #8C858E;
+    --gray-400: #E2E1DF;
+    --gray-200: #F4F4F4;
+    --fearless-dark: #6542BE;
+    --fearless-lightest: #EDE6FF;
+    --focus-purple: #9476EA;
+    --legacy-gray-900: #35293D;
+    --pure-white: #FFFFFF;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #E8E4EF;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+  }
+
+  .phone-frame {
+    width: 390px;
+    height: 844px;
+    background: var(--pure-white);
+    border-radius: 40px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 25px 60px rgba(0,0,0,0.15);
+  }
+
+  .screen {
+    display: none;
+    position: absolute;
+    inset: 0;
+    background: var(--pure-white);
+    flex-direction: column;
+  }
+
+  .screen.active {
+    display: flex;
+    animation: fadeIn 0.25s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  /* Status Bar */
+  .status-bar {
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 25px;
+    flex-shrink: 0;
+  }
+
+  .status-bar .time {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.24px;
+  }
+
+  .status-bar .icons {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+  }
+
+  .status-bar .icons svg { height: 12px; }
+
+  /* Top Nav */
+  .top-nav {
+    height: 47px;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .back-btn {
+    width: 50px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding-left: 13px;
+  }
+
+  .back-btn svg {
+    width: 24px;
+    height: 24px;
+    color: var(--confidence);
+  }
+
+  /* Scrollable Content */
+  .scroll-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 24px;
+  }
+
+  .scroll-content::after {
+    content: '';
+    display: block;
+    height: 20px;
+  }
+
+  /* Heading */
+  .merchant-name {
+    font-size: 24px;
+    font-weight: 500;
+    line-height: 36px;
+    color: var(--confidence);
+    padding-left: 8px;
+  }
+
+  .order-date {
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--gray-800);
+    padding-left: 8px;
+    margin-top: 4px;
+  }
+
+  .order-id {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--fearless-dark);
+    padding-left: 8px;
+    margin-top: 4px;
+  }
+
+  .order-id svg { width: 16px; height: 16px; color: var(--fearless-dark); }
+
+  /* Payment Card */
+  .payment-card {
+    background: var(--gray-200);
+    border-radius: 16px;
+    overflow: hidden;
+    margin-top: 32px;
+  }
+
+  .payment-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--gray-400);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  .payment-header-label {
+    font-size: 12px;
+    line-height: 16px;
+    color: var(--gray-800);
+  }
+
+  .payment-header-amount {
+    font-size: 24px;
+    line-height: 24px;
+    color: var(--confidence);
+    margin-top: 4px;
+  }
+
+  .payment-header-amount .used {
+    font-size: 16px;
+    color: var(--gray-600);
+  }
+
+  .payment-header .info-icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .payment-body {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    align-items: center;
+  }
+
+  /* Alert */
+  .alert-banner {
+    background: var(--fearless-lightest);
+    border-radius: 16px;
+    padding: 12px;
+    width: 100%;
+  }
+
+  .alert-banner p {
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--legacy-gray-900);
+  }
+
+  .alert-banner .update-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--confidence);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 5px 12px;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 20px;
+    cursor: pointer;
+    margin-top: 8px;
+  }
+
+  .alert-banner .update-btn svg { width: 16px; height: 16px; }
+
+  /* Installments */
+  .installments {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .installment {
+    width: 64px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .installment-wheel {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .installment-wheel.paid {
+    background: conic-gradient(var(--fearless-dark) 100%, var(--gray-400) 100%);
+  }
+
+  .installment-wheel.upcoming {
+    background: conic-gradient(var(--gray-400) 0%, var(--gray-400) 100%);
+  }
+
+  .installment-wheel::after {
+    content: '';
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--gray-200);
+    position: absolute;
+  }
+
+  .installment-wheel .check {
+    position: absolute;
+    z-index: 1;
+    color: var(--fearless-dark);
+    width: 14px;
+    height: 14px;
+  }
+
+  .installment-date {
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--confidence);
+    text-align: center;
+  }
+
+  .installment-amount {
+    font-size: 10px;
+    line-height: 14px;
+    color: var(--gray-800);
+    text-align: center;
+  }
+
+  /* Buttons */
+  .btn-primary {
+    background: var(--fearless-dark);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    height: 50px;
+    width: 100%;
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 22px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .btn-primary:active { opacity: 0.9; }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .autopay-text {
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--gray-800);
+    text-align: center;
+  }
+
+  .autopay-text a {
+    color: var(--fearless-dark);
+    text-decoration: underline;
+  }
+
+  /* Actions */
+  .section-title {
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 20px;
+    color: var(--confidence);
+    margin-top: 32px;
+    margin-bottom: 12px;
+  }
+
+  .action-list {
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .action-item {
+    background: var(--gray-200);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 16px;
+    height: 62px;
+    border-bottom: 1px solid var(--gray-400);
+    cursor: pointer;
+  }
+
+  .action-item:last-child { border-bottom: none; }
+
+  .action-item .action-icon {
+    width: 32px;
+    height: 32px;
+    color: var(--confidence);
+    flex-shrink: 0;
+  }
+
+  .action-item .action-label {
+    flex: 1;
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--confidence);
+  }
+
+  .action-item .arrow {
+    width: 24px;
+    height: 24px;
+    color: var(--gray-800);
+    flex-shrink: 0;
+  }
+
+  .actions-gap { margin-top: 24px; }
+
+  /* Bottom */
+  .bottom-bar {
+    flex-shrink: 0;
+    padding: 0 24px;
+    background: white;
+  }
+
+  .home-indicator {
+    height: 34px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 8px;
+    flex-shrink: 0;
+  }
+
+  .home-indicator .bar {
+    width: 134px;
+    height: 5px;
+    background: black;
+    border-radius: 100px;
+  }
+
+  /* Question Screens */
+  .question-title {
+    font-size: 24px;
+    font-weight: 500;
+    line-height: 30px;
+    color: var(--confidence);
+    margin-bottom: 24px;
+  }
+
+  .option-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .option-item {
+    border: 1.5px solid var(--gray-400);
+    border-radius: 16px;
+    padding: 20px 24px;
+    font-size: 16px;
+    line-height: 22px;
+    color: var(--confidence);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    background: none;
+    text-align: left;
+    width: 100%;
+    font-family: inherit;
+  }
+
+  .option-item:hover { border-color: var(--focus-purple); }
+
+  .option-item.selected {
+    border-color: var(--focus-purple);
+    color: var(--fearless-dark);
+  }
+
+  /* Update Order */
+  .update-title {
+    font-size: 24px;
+    font-weight: 500;
+    line-height: 30px;
+    color: var(--confidence);
+  }
+
+  .update-subtitle {
+    font-size: 13px;
+    line-height: 18px;
+    color: var(--confidence);
+    margin-top: 8px;
+  }
+
+  .update-details {
+    background: var(--gray-200);
+    border-radius: 16px;
+    padding: 24px;
+    margin-top: 24px;
+    font-size: 13px;
+    line-height: 18px;
+    color: var(--confidence);
+  }
+
+  .update-details .label { margin-bottom: 2px; }
+
+  .update-details .value {
+    font-weight: 500;
+    margin-bottom: 16px;
+  }
+
+  .update-details .value:last-of-type { margin-bottom: 0; }
+
+  .update-details .terms { margin-top: 16px; line-height: 18px; }
+
+  .checkbox-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-top: 24px;
+  }
+
+  .checkbox-row input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin-top: 2px;
+    accent-color: var(--fearless-dark);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .checkbox-row label {
+    font-size: 13px;
+    line-height: 18px;
+    color: var(--confidence);
+    cursor: pointer;
+  }
+
+  .refund-note {
+    font-size: 11px;
+    line-height: 18px;
+    color: var(--gray-600);
+    text-align: center;
+    margin-top: 16px;
+  }
+
+  /* Error */
+  .error-title {
+    font-size: 24px;
+    font-weight: 500;
+    line-height: 30px;
+    color: var(--confidence);
+  }
+
+  .error-desc {
+    font-size: 13px;
+    line-height: 18px;
+    color: var(--confidence);
+    margin-top: 8px;
+  }
+
+  /* Updated header */
+  .updated-header-amount {
+    font-size: 24px;
+    line-height: 24px;
+    color: var(--confidence);
+    margin-top: 4px;
+  }
+
+  .updated-header-amount .original {
+    font-size: 16px;
+    color: var(--gray-600);
+    text-decoration: line-through;
+  }
+
+  /* Prototype 02 badge */
+  .prototype-02-btn {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 20;
+    border: none;
+    border-radius: 999px;
+    background: linear-gradient(135deg, var(--fearless-dark), var(--confidence));
+    color: var(--pure-white);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0.2px;
+    padding: 10px 14px;
+    box-shadow: 0 8px 20px rgba(26, 8, 38, 0.25);
+    cursor: pointer;
+  }
+
+  .prototype-02-btn:active {
+    transform: translateY(1px);
+  }
+
+  .page-title-overlay {
+    position: fixed;
+    top: 24px;
+    left: 24px;
+    z-index: 20;
+    max-width: 360px;
+    font-family: inherit;
+    font-size: 26px;
+    font-weight: 500;
+    line-height: 1.2;
+    color: var(--confidence);
+    opacity: 0.35;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+
+<div class="phone-frame">
+
+  <!-- SCREEN 1: Order Details -->
+  <div class="screen active" id="screen-order-details">
+    <div class="status-bar">
+      <span class="time">2:19</span>
+      <div class="icons">
+        <svg viewBox="0 0 17 11" fill="currentColor"><rect x="0" y="0.5" width="3" height="10" rx="1"/><rect x="4.5" y="2.5" width="3" height="8" rx="1"/><rect x="9" y="4.5" width="3" height="6" rx="1"/><rect x="13.5" y="6.5" width="3" height="4" rx="1"/></svg>
+        <svg viewBox="0 0 15 11" fill="currentColor"><path d="M7.5 2.5C9.4 2.5 11.1 3.3 12.3 4.5L13.7 3.1C12.1 1.5 10 0.5 7.5 0.5C5 0.5 2.9 1.5 1.3 3.1L2.7 4.5C3.9 3.3 5.6 2.5 7.5 2.5ZM7.5 6.5C8.6 6.5 9.5 6.9 10.2 7.6L11.6 6.2C10.5 5.1 9.1 4.5 7.5 4.5C5.9 4.5 4.5 5.1 3.4 6.2L4.8 7.6C5.5 6.9 6.4 6.5 7.5 6.5ZM9 10L7.5 8.5L6 10L7.5 11L9 10Z"/></svg>
+        <svg viewBox="0 0 25 12" fill="currentColor"><rect x="0" y="0" width="22" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1"/><rect x="23" y="3.5" width="2" height="5" rx="1"/><rect x="2" y="2" width="18" height="8" rx="1"/></svg>
+      </div>
+    </div>
+
+    <div class="top-nav">
+      <button class="back-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+      </button>
+    </div>
+
+    <div class="scroll-content">
+      <div class="merchant-name">Nike</div>
+      <div class="order-date">Jan 5, 2026</div>
+      <div class="order-id">
+        #200730-108969
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="5" width="8" height="8" rx="1.5"/><path d="M3 11V3h8"/></svg>
+      </div>
+
+      <div class="payment-card">
+        <div class="payment-header">
+          <div>
+            <div class="payment-header-label">Order total</div>
+            <div class="payment-header-amount">$96.00 <span class="used">$48.00 used</span></div>
+          </div>
+          <svg class="info-icon" viewBox="0 0 18 18" fill="none" stroke="#544A5A" stroke-width="1.5"><circle cx="9" cy="9" r="7.5"/><path d="M9 8.5V13"/><circle cx="9" cy="6" r="0.75" fill="#544A5A" stroke="none"/></svg>
+        </div>
+        <div class="payment-body">
+          <div class="alert-banner">
+            <p>There is $48 unused on this order. If this order is complete, we can update the order total to $48 now.</p>
+            <button class="update-btn" onclick="navigateTo('screen-question-1')">
+              Update now
+              <svg viewBox="0 0 16 16" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><path d="M3 8h10"/><path d="M9 4l4 4-4 4"/></svg>
+            </button>
+          </div>
+
+          <div class="installments">
+            <div class="installment">
+              <div class="installment-wheel paid">
+                <svg class="check" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 7l3 3 5-5"/></svg>
+              </div>
+              <div>
+                <div class="installment-date">Jan 5</div>
+                <div class="installment-amount">$24.00</div>
+              </div>
+            </div>
+            <div class="installment">
+              <div class="installment-wheel upcoming"></div>
+              <div>
+                <div class="installment-date">Jan 20</div>
+                <div class="installment-amount">$24.00</div>
+              </div>
+            </div>
+            <div class="installment">
+              <div class="installment-wheel upcoming"></div>
+              <div>
+                <div class="installment-date">Feb 5</div>
+                <div class="installment-amount">$24.00</div>
+              </div>
+            </div>
+            <div class="installment">
+              <div class="installment-wheel upcoming"></div>
+              <div>
+                <div class="installment-date">Feb 20</div>
+                <div class="installment-amount">$24.00</div>
+              </div>
+            </div>
+          </div>
+
+          <button class="btn-primary">Make a payment</button>
+          <div class="autopay-text">Autopay in 4 days. <a href="#">Move payment</a></div>
+        </div>
+      </div>
+
+      <div class="section-title">Manage your order</div>
+      <div class="action-list">
+        <div class="action-item" onclick="navigateTo('screen-question-1')">
+          <svg class="action-icon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="6" y="4" width="20" height="24" rx="2"/><path d="M11 10h10M11 14h10M11 18h6"/></svg>
+          <span class="action-label">Report an order issue</span>
+          <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+        <div class="action-item">
+          <svg class="action-icon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="16" cy="16" r="10"/><path d="M16 12v5l3 3"/></svg>
+          <span class="action-label">Help center</span>
+          <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+      </div>
+
+      <div class="action-list actions-gap">
+        <div class="action-item">
+          <svg class="action-icon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="6" y="8" width="20" height="18" rx="2"/><path d="M6 14h20"/></svg>
+          <span class="action-label">Truth in Lending Disclosure</span>
+          <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+        <div class="action-item">
+          <svg class="action-icon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="6" y="8" width="20" height="18" rx="2"/><path d="M6 14h20"/></svg>
+          <span class="action-label">Periodic statement</span>
+          <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+        <div class="action-item">
+          <svg class="action-icon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 8V6a4 4 0 018 0v2"/><rect x="8" y="8" width="16" height="18" rx="2"/></svg>
+          <span class="action-label">Esign Consent</span>
+          <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="home-indicator"><div class="bar"></div></div>
+  </div>
+
+  <!-- SCREEN 2: Question 1 -->
+  <div class="screen" id="screen-question-1">
+    <div class="status-bar">
+      <span class="time">9:41</span>
+      <div class="icons">
+        <svg viewBox="0 0 17 11" fill="currentColor"><rect x="0" y="0.5" width="3" height="10" rx="1"/><rect x="4.5" y="2.5" width="3" height="8" rx="1"/><rect x="9" y="4.5" width="3" height="6" rx="1"/><rect x="13.5" y="6.5" width="3" height="4" rx="1"/></svg>
+        <svg viewBox="0 0 15 11" fill="currentColor"><path d="M7.5 2.5C9.4 2.5 11.1 3.3 12.3 4.5L13.7 3.1C12.1 1.5 10 0.5 7.5 0.5C5 0.5 2.9 1.5 1.3 3.1L2.7 4.5C3.9 3.3 5.6 2.5 7.5 2.5ZM7.5 6.5C8.6 6.5 9.5 6.9 10.2 7.6L11.6 6.2C10.5 5.1 9.1 4.5 7.5 4.5C5.9 4.5 4.5 5.1 3.4 6.2L4.8 7.6C5.5 6.9 6.4 6.5 7.5 6.5ZM9 10L7.5 8.5L6 10L7.5 11L9 10Z"/></svg>
+        <svg viewBox="0 0 25 12" fill="currentColor"><rect x="0" y="0" width="22" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1"/><rect x="23" y="3.5" width="2" height="5" rx="1"/><rect x="2" y="2" width="18" height="8" rx="1"/></svg>
+      </div>
+    </div>
+
+    <div class="top-nav">
+      <button class="back-btn" onclick="navigateTo('screen-order-details')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+      </button>
+    </div>
+
+    <div class="scroll-content">
+      <div class="question-title">Does the $48 match what you actually spent?</div>
+      <div class="option-list">
+        <button class="option-item" onclick="selectOption('q1', this)">Yes</button>
+        <button class="option-item" onclick="selectOption('q1', this)">No</button>
+      </div>
+    </div>
+
+    <div class="bottom-bar">
+      <button class="btn-primary" id="q1-next" disabled onclick="handleQ1Next()">Next</button>
+    </div>
+    <div class="home-indicator"><div class="bar"></div></div>
+  </div>
+
+  <!-- SCREEN 3: Question 2 -->
+  <div class="screen" id="screen-question-2">
+    <div class="status-bar">
+      <span class="time">9:41</span>
+      <div class="icons">
+        <svg viewBox="0 0 17 11" fill="currentColor"><rect x="0" y="0.5" width="3" height="10" rx="1"/><rect x="4.5" y="2.5" width="3" height="8" rx="1"/><rect x="9" y="4.5" width="3" height="6" rx="1"/><rect x="13.5" y="6.5" width="3" height="4" rx="1"/></svg>
+        <svg viewBox="0 0 15 11" fill="currentColor"><path d="M7.5 2.5C9.4 2.5 11.1 3.3 12.3 4.5L13.7 3.1C12.1 1.5 10 0.5 7.5 0.5C5 0.5 2.9 1.5 1.3 3.1L2.7 4.5C3.9 3.3 5.6 2.5 7.5 2.5ZM7.5 6.5C8.6 6.5 9.5 6.9 10.2 7.6L11.6 6.2C10.5 5.1 9.1 4.5 7.5 4.5C5.9 4.5 4.5 5.1 3.4 6.2L4.8 7.6C5.5 6.9 6.4 6.5 7.5 6.5ZM9 10L7.5 8.5L6 10L7.5 11L9 10Z"/></svg>
+        <svg viewBox="0 0 25 12" fill="currentColor"><rect x="0" y="0" width="22" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1"/><rect x="23" y="3.5" width="2" height="5" rx="1"/><rect x="2" y="2" width="18" height="8" rx="1"/></svg>
+      </div>
+    </div>
+
+    <div class="top-nav">
+      <button class="back-btn" onclick="navigateTo('screen-question-1')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+      </button>
+    </div>
+
+    <div class="scroll-content">
+      <div class="question-title">Have all items in this order been either delivered, fulfilled, or cancelled?</div>
+      <div class="option-list">
+        <button class="option-item" onclick="selectOption('q2', this)">Yes</button>
+        <button class="option-item" onclick="selectOption('q2', this)">No</button>
+      </div>
+    </div>
+
+    <div class="bottom-bar">
+      <button class="btn-primary" id="q2-next" disabled onclick="handleQ2Next()">Next</button>
+    </div>
+    <div class="home-indicator"><div class="bar"></div></div>
+  </div>
+
+  <!-- SCREEN 4: Update Order -->
+  <div class="screen" id="screen-update-order">
+    <div class="status-bar">
+      <span class="time">9:41</span>
+      <div class="icons">
+        <svg viewBox="0 0 17 11" fill="currentColor"><rect x="0" y="0.5" width="3" height="10" rx="1"/><rect x="4.5" y="2.5" width="3" height="8" rx="1"/><rect x="9" y="4.5" width="3" height="6" rx="1"/><rect x="13.5" y="6.5" width="3" height="4" rx="1"/></svg>
+        <svg viewBox="0 0 15 11" fill="currentColor"><path d="M7.5 2.5C9.4 2.5 11.1 3.3 12.3 4.5L13.7 3.1C12.1 1.5 10 0.5 7.5 0.5C5 0.5 2.9 1.5 1.3 3.1L2.7 4.5C3.9 3.3 5.6 2.5 7.5 2.5ZM7.5 6.5C8.6 6.5 9.5 6.9 10.2 7.6L11.6 6.2C10.5 5.1 9.1 4.5 7.5 4.5C5.9 4.5 4.5 5.1 3.4 6.2L4.8 7.6C5.5 6.9 6.4 6.5 7.5 6.5ZM9 10L7.5 8.5L6 10L7.5 11L9 10Z"/></svg>
+        <svg viewBox="0 0 25 12" fill="currentColor"><rect x="0" y="0" width="22" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1"/><rect x="23" y="3.5" width="2" height="5" rx="1"/><rect x="2" y="2" width="18" height="8" rx="1"/></svg>
+      </div>
+    </div>
+
+    <div class="top-nav">
+      <button class="back-btn" onclick="navigateTo('screen-question-2')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+      </button>
+    </div>
+
+    <div class="scroll-content">
+      <div class="update-title">Update order</div>
+      <div class="update-subtitle">Confirm the details with the customer and get their consent before adjusting the order.</div>
+
+      <div class="update-details">
+        <div class="label">Original order amount:</div>
+        <div class="value"><strong>$96.00</strong></div>
+
+        <div class="label">Updated order total:</div>
+        <div class="value"><strong>$48.00</strong></div>
+
+        <div class="label">Difference:</div>
+        <div class="value"><strong>$48.00</strong></div>
+
+        <div class="terms">Please note that updating this order is final and can't be undone and your payment plan will be updated. The difference, plus any applicable fee adjustments, will be applied to your last installment first, then earlier installments if needed.</div>
+
+        <div class="terms" style="margin-top: 12px;">Any future transactions for this order will be rejected. If additional funds are needed, you will need to create a new purchase request and place a new order.</div>
+      </div>
+
+      <div class="checkbox-row">
+        <input type="checkbox" id="agree-checkbox" onchange="toggleUpdateBtn()">
+        <label for="agree-checkbox">I confirm I have read and agree to these terms.</label>
+      </div>
+
+      <div class="refund-note">This will refund the difference and close the order.</div>
+    </div>
+
+    <div class="bottom-bar">
+      <button class="btn-primary" id="update-order-btn" disabled onclick="navigateTo('screen-updated')">Update order</button>
+    </div>
+    <div class="home-indicator"><div class="bar"></div></div>
+  </div>
+
+  <!-- SCREEN 5: Order Cannot Be Updated Yet -->
+  <div class="screen" id="screen-cannot-update">
+    <div class="status-bar">
+      <span class="time">9:41</span>
+      <div class="icons">
+        <svg viewBox="0 0 17 11" fill="currentColor"><rect x="0" y="0.5" width="3" height="10" rx="1"/><rect x="4.5" y="2.5" width="3" height="8" rx="1"/><rect x="9" y="4.5" width="3" height="6" rx="1"/><rect x="13.5" y="6.5" width="3" height="4" rx="1"/></svg>
+        <svg viewBox="0 0 15 11" fill="currentColor"><path d="M7.5 2.5C9.4 2.5 11.1 3.3 12.3 4.5L13.7 3.1C12.1 1.5 10 0.5 7.5 0.5C5 0.5 2.9 1.5 1.3 3.1L2.7 4.5C3.9 3.3 5.6 2.5 7.5 2.5ZM7.5 6.5C8.6 6.5 9.5 6.9 10.2 7.6L11.6 6.2C10.5 5.1 9.1 4.5 7.5 4.5C5.9 4.5 4.5 5.1 3.4 6.2L4.8 7.6C5.5 6.9 6.4 6.5 7.5 6.5ZM9 10L7.5 8.5L6 10L7.5 11L9 10Z"/></svg>
+        <svg viewBox="0 0 25 12" fill="currentColor"><rect x="0" y="0" width="22" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1"/><rect x="23" y="3.5" width="2" height="5" rx="1"/><rect x="2" y="2" width="18" height="8" rx="1"/></svg>
+      </div>
+    </div>
+
+    <div class="top-nav">
+      <button class="back-btn" onclick="navigateTo('screen-question-2')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+      </button>
+    </div>
+
+    <div class="scroll-content">
+      <div class="error-title">Order cannot be updated yet</div>
+      <div class="error-desc">This order includes items that haven't been fulfilled yet. To avoid cancellation, we recommend waiting until the order is complete before making any changes.</div>
+      <button class="btn-primary" style="margin-top: 19px;" onclick="navigateTo('screen-order-details')">Exit</button>
+    </div>
+
+    <div class="home-indicator"><div class="bar"></div></div>
+  </div>
+
+  <!-- SCREEN 6: Updated Order -->
+  <div class="screen" id="screen-updated">
+    <div class="status-bar">
+      <span class="time">2:19</span>
+      <div class="icons">
+        <svg viewBox="0 0 17 11" fill="currentColor"><rect x="0" y="0.5" width="3" height="10" rx="1"/><rect x="4.5" y="2.5" width="3" height="8" rx="1"/><rect x="9" y="4.5" width="3" height="6" rx="1"/><rect x="13.5" y="6.5" width="3" height="4" rx="1"/></svg>
+        <svg viewBox="0 0 15 11" fill="currentColor"><path d="M7.5 2.5C9.4 2.5 11.1 3.3 12.3 4.5L13.7 3.1C12.1 1.5 10 0.5 7.5 0.5C5 0.5 2.9 1.5 1.3 3.1L2.7 4.5C3.9 3.3 5.6 2.5 7.5 2.5ZM7.5 6.5C8.6 6.5 9.5 6.9 10.2 7.6L11.6 6.2C10.5 5.1 9.1 4.5 7.5 4.5C5.9 4.5 4.5 5.1 3.4 6.2L4.8 7.6C5.5 6.9 6.4 6.5 7.5 6.5ZM9 10L7.5 8.5L6 10L7.5 11L9 10Z"/></svg>
+        <svg viewBox="0 0 25 12" fill="currentColor"><rect x="0" y="0" width="22" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1"/><rect x="23" y="3.5" width="2" height="5" rx="1"/><rect x="2" y="2" width="18" height="8" rx="1"/></svg>
+      </div>
+    </div>
+
+    <div class="top-nav">
+      <button class="back-btn" onclick="navigateTo('screen-order-details')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+      </button>
+    </div>
+
+    <div class="scroll-content">
+      <div class="merchant-name">Nike</div>
+      <div class="order-date">Jan 5, 2026</div>
+      <div class="order-id">
+        #200730-108969
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="5" width="8" height="8" rx="1.5"/><path d="M3 11V3h8"/></svg>
+      </div>
+
+      <div class="payment-card">
+        <div class="payment-header">
+          <div>
+            <div class="payment-header-label">Order total</div>
+            <div class="updated-header-amount">$48.00 <span class="original">$96.00</span></div>
+          </div>
+          <svg class="info-icon" viewBox="0 0 18 18" fill="none" stroke="#544A5A" stroke-width="1.5"><circle cx="9" cy="9" r="7.5"/><path d="M9 8.5V13"/><circle cx="9" cy="6" r="0.75" fill="#544A5A" stroke="none"/></svg>
+        </div>
+        <div class="payment-body">
+          <div class="installments">
+            <div class="installment">
+              <div class="installment-wheel paid">
+                <svg class="check" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 7l3 3 5-5"/></svg>
+              </div>
+              <div>
+                <div class="installment-date">Jan 5</div>
+                <div class="installment-amount">$24.00</div>
+              </div>
+            </div>
+            <div class="installment">
+              <div class="installment-wheel upcoming"></div>
+              <div>
+                <div class="installment-date">Jan 20</div>
+                <div class="installment-amount">$8.00</div>
+              </div>
+            </div>
+            <div class="installment">
+              <div class="installment-wheel upcoming"></div>
+              <div>
+                <div class="installment-date">Feb 5</div>
+                <div class="installment-amount">$8.00</div>
+              </div>
+            </div>
+            <div class="installment">
+              <div class="installment-wheel upcoming"></div>
+              <div>
+                <div class="installment-date">Feb 20</div>
+                <div class="installment-amount">$8.00</div>
+              </div>
+            </div>
+          </div>
+
+          <button class="btn-primary">Make a payment</button>
+          <div class="autopay-text">Autopay in 4 days. <a href="#">Move payment</a></div>
+        </div>
+      </div>
+
+      <div class="section-title">Manage your order</div>
+      <div class="action-list">
+        <div class="action-item">
+          <svg class="action-icon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="6" y="4" width="20" height="24" rx="2"/><path d="M11 10h10M11 14h10M11 18h6"/></svg>
+          <span class="action-label">Report an order issue</span>
+          <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+        <div class="action-item">
+          <svg class="action-icon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="16" cy="16" r="10"/><path d="M16 12v5l3 3"/></svg>
+          <span class="action-label">Help center</span>
+          <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+      </div>
+
+      <div class="action-list actions-gap">
+        <div class="action-item">
+          <svg class="action-icon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="6" y="8" width="20" height="18" rx="2"/><path d="M6 14h20"/></svg>
+          <span class="action-label">Truth in Lending Disclosure</span>
+          <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+        <div class="action-item">
+          <svg class="action-icon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="6" y="8" width="20" height="18" rx="2"/><path d="M6 14h20"/></svg>
+          <span class="action-label">Periodic statement</span>
+          <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+        <div class="action-item">
+          <svg class="action-icon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 8V6a4 4 0 018 0v2"/><rect x="8" y="8" width="16" height="18" rx="2"/></svg>
+          <span class="action-label">Esign Consent</span>
+          <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="home-indicator"><div class="bar"></div></div>
+  </div>
+
+</div>
+
+<div class="page-title-overlay">Customer uses partial amount of PR</div>
+<button class="prototype-02-btn" aria-label="Prototype 02">Zips | P02</button>
+
+<script>
+  const selections = { q1: null, q2: null };
+
+  function navigateTo(screenId) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    const target = document.getElementById(screenId);
+    target.classList.add('active');
+    // Reset scroll position
+    const scrollEl = target.querySelector('.scroll-content');
+    if (scrollEl) scrollEl.scrollTop = 0;
+  }
+
+  function selectOption(question, el) {
+    const parent = el.closest('.option-list');
+    parent.querySelectorAll('.option-item').forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+    selections[question] = el.textContent.trim();
+    document.getElementById(question + '-next').disabled = false;
+  }
+
+  function handleQ1Next() {
+    navigateTo('screen-question-2');
+  }
+
+  function handleQ2Next() {
+    if (selections.q2 === 'Yes') {
+      navigateTo('screen-update-order');
+    } else {
+      navigateTo('screen-cannot-update');
+    }
+  }
+
+  function toggleUpdateBtn() {
+    document.getElementById('update-order-btn').disabled = !document.getElementById('agree-checkbox').checked;
+  }
+</script>
+
+</body>
+</html>
