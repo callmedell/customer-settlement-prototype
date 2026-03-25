@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>POC AI Prototype</title>
+  <style>
+    :root {
+      --bg: #f3f3f3;
+      --white: #ffffff;
+      --zip-confidence: #1a0826;
+      --zip-purple: #6542be;
+      --gray-800: #544a5a;
+      --gray-500: #c6c3c5;
+      --gray-400: #e2e1df;
+      --active-ring: #aa8fff;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #e8e4ef;
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--zip-confidence);
+      padding: 20px;
+    }
+
+    .viewport {
+      position: relative;
+      width: 100%;
+      max-width: 1200px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .phone {
+      width: 390px;
+      height: 844px;
+      border-radius: 40px;
+      overflow: hidden;
+      background: var(--bg);
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.15);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .top-wrap {
+      height: 104px;
+      width: 100%;
+      position: relative;
+      background: var(--bg);
+    }
+
+    .status-time {
+      position: absolute;
+      left: 25px;
+      top: 14px;
+      width: 54px;
+      height: 21px;
+      font-size: 15px;
+      line-height: 20px;
+      font-weight: 600;
+      color: #000;
+      text-align: center;
+      letter-spacing: -0.1px;
+    }
+
+    .status-right {
+      position: absolute;
+      right: 18.67px;
+      top: 19.33px;
+      width: 68.66px;
+      height: 12px;
+    }
+
+    .sig-mobile {
+      position: absolute;
+      right: 52.33px;
+      top: 0.34px;
+      width: 17px;
+      height: 10.67px;
+      display: block;
+    }
+
+    .sig-wifi {
+      position: absolute;
+      right: 23.03px;
+      top: 0;
+      width: 15.27px;
+      height: 10.97px;
+      display: block;
+    }
+
+    .battery {
+      position: absolute;
+      right: 0;
+      top: 0;
+      width: 24.33px;
+      height: 11.33px;
+    }
+
+    .battery-outline {
+      position: absolute;
+      right: 2px;
+      top: 0;
+      width: 22px;
+      height: 11.33px;
+      display: block;
+    }
+
+    .battery-fill {
+      position: absolute;
+      right: 4px;
+      top: 2px;
+      width: 18px;
+      height: 7.33px;
+      display: block;
+    }
+
+    .battery-cap {
+      position: absolute;
+      right: 0;
+      top: 3.67px;
+      width: 1.33px;
+      height: 4px;
+      display: block;
+    }
+
+    .top-nav {
+      position: absolute;
+      top: 48px;
+      left: 0;
+      width: 390px;
+      height: 56px;
+      border-top-left-radius: 10px;
+      border-top-right-radius: 10px;
+      background: #f3f3f3;
+      overflow: hidden;
+    }
+
+    .cobranded {
+      display: none;
+      position: absolute;
+      top: 48px;
+      left: 0;
+      width: 390px;
+      background: #0046be;
+      color: #fff;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      min-height: 36px;
+      font-size: 12px;
+      line-height: 16px;
+      font-weight: 600;
+    }
+
+    .bestbuy-logo {
+      display: block;
+      width: 100%;
+      max-width: 50px;
+      height: auto;
+      object-fit: contain;
+    }
+
+    .cobranded .back-link {
+      color: #fff;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .logo {
+      position: absolute;
+      left: 164px;
+      top: 16px;
+      width: 61px;
+      height: 21.54px;
+    }
+
+    .logo img { position: absolute; display: block; }
+
+    .close {
+      position: absolute;
+      right: 27px;
+      top: 16px;
+      width: 16px;
+      height: 16px;
+      color: #1d1b20;
+      font-size: 34px;
+      line-height: 14px;
+      font-weight: 300;
+    }
+
+    .variation-rail {
+      position: fixed;
+      right: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 30;
+    }
+
+    .variation-btn {
+      border: 1px solid #c6c3c5;
+      background: #fff;
+      color: #1a0826;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 12px;
+      line-height: 16px;
+      min-width: 170px;
+      text-align: left;
+      cursor: pointer;
+      box-shadow: 0 6px 16px rgba(26, 8, 38, 0.08);
+    }
+
+    .variation-btn.active {
+      border-color: #6542be;
+      color: #6542be;
+      box-shadow: 0 8px 20px rgba(101, 66, 190, 0.18);
+    }
+
+    body[data-variation="bestbuy"] .cobranded,
+    body[data-variation="v3"] .cobranded {
+      display: flex;
+    }
+
+    body[data-variation="bestbuy"] .top-nav,
+    body[data-variation="v3"] .top-nav {
+      top: 104px;
+    }
+
+    body[data-variation="bestbuy"] .top-wrap,
+    body[data-variation="v3"] .top-wrap {
+      height: 160px;
+    }
+
+    body[data-variation="v3"] .social-proof {
+      display: block;
+    }
+
+    .content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    .content::-webkit-scrollbar { display: none; }
+
+    .card {
+      background: var(--white);
+      border-radius: 8px;
+      width: 358px;
+    }
+
+    .card + .card { margin-top: 16px; }
+
+    .plan-head {
+      padding: 16px;
+      font-size: 14px;
+      line-height: 20px;
+      color: var(--zip-confidence);
+      width: 326px;
+      font-weight: 400;
+    }
+
+    .options {
+      margin: 0 16px 0;
+      border: 1px solid var(--gray-400);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .option {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      padding: 12px;
+      background: #fff;
+    }
+
+    .option + .option { border-top: 1px solid var(--gray-400); }
+
+    .radio {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 2px solid #c3c1bf;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+    }
+
+    .radio.active {
+      border-color: #9476ea;
+      background: #9476ea;
+    }
+
+    .radio.active::after {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #fff;
+    }
+
+    .line1 {
+      font-size: 13px;
+      line-height: 18px;
+      margin-bottom: 0;
+      color: var(--zip-confidence);
+      font-weight: 600;
+    }
+
+    .line2 {
+      font-size: 13px;
+      line-height: 18px;
+      color: var(--gray-800);
+      font-weight: 400;
+    }
+
+    .social-proof {
+      display: none;
+      margin-top: 4px;
+      font-size: 11px;
+      line-height: 14px;
+      color: #0046be;
+      font-weight: 600;
+    }
+
+    .learn {
+      color: var(--zip-purple);
+      font-size: 12px;
+      line-height: 16px;
+      margin: 10px 16px 16px;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .plan-grid {
+      border-top: 1px solid var(--gray-500);
+      padding: 16px;
+      background: #fff;
+      border-bottom-left-radius: 8px;
+      border-bottom-right-radius: 8px;
+    }
+
+    .row-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      font-size: 13px;
+      line-height: 18px;
+    }
+
+    .arrow {
+      width: 16px;
+      height: 16px;
+      display: block;
+    }
+
+    .installments {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .inst {
+      width: 56px;
+      text-align: center;
+    }
+
+    .ring-wrap {
+      width: 32px;
+      height: 32px;
+      margin: 0 auto 4px;
+      position: relative;
+    }
+
+    .ring-wrap .base {
+      position: absolute;
+      inset: 0;
+      width: 32px;
+      height: 32px;
+    }
+
+    .ring-wrap .overlay {
+      position: absolute;
+      display: block;
+    }
+
+    .inst strong, .inst span {
+      display: block;
+      font-size: 13px;
+      line-height: 18px;
+      color: var(--zip-confidence);
+    }
+
+    .inst em {
+      display: block;
+      font-style: normal;
+      font-size: 10px;
+      line-height: 14px;
+      color: var(--gray-800);
+      margin-top: -1px;
+    }
+
+    .inst.today em {
+      color: var(--zip-confidence);
+      font-weight: 600;
+    }
+
+    .simple-row {
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px;
+      font-size: 13px;
+      line-height: 18px;
+    }
+
+    .pay-method {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px;
+      height: 72px;
+    }
+
+    .pay-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .visa-badge {
+      width: 34px;
+      height: 24px;
+      object-fit: contain;
+      display: block;
+    }
+
+    .pm1 {
+      font-size: 14px;
+      line-height: 20px;
+      width: auto;
+      font-weight: 600;
+    }
+
+    .pm2 {
+      font-size: 13px;
+      line-height: 18px;
+      width: auto;
+      color: var(--gray-800);
+    }
+
+    .disclaimer {
+      margin: 24px 0 0;
+      font-size: 13px;
+      line-height: 18px;
+      width: 327px;
+      color: var(--zip-confidence);
+      height: 168px;
+    }
+
+    .disclaimer a {
+      color: var(--zip-purple);
+      text-decoration: underline;
+    }
+
+    .cta {
+      width: 333px;
+      height: 50px;
+      border-radius: 8px;
+      border: none;
+      background: var(--zip-purple);
+      color: #fff;
+      font-size: 16px;
+      line-height: 22px;
+      font-weight: 600;
+      margin: 12px auto 0;
+      display: block;
+      cursor: default;
+    }
+
+    .footer {
+      height: 66px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding-top: 16px;
+      color: var(--gray-800);
+      font-size: 14px;
+      line-height: 18px;
+    }
+  </style>
+</head>
+<body>
+  <div class="viewport">
+  <main class="phone" aria-label="POC AI mobile prototype">
+    <section class="top-wrap">
+      <div class="status-time">2:19</div>
+      <div class="status-right">
+        <img class="sig-mobile" src="https://www.figma.com/api/mcp/asset/e55d5417-97bc-4092-8a8f-bd605c5c241c" alt="">
+        <img class="sig-wifi" src="https://www.figma.com/api/mcp/asset/01c846b4-6e3a-48c1-a55d-4990f2f384bd" alt="">
+        <div class="battery">
+          <img class="battery-outline" src="https://www.figma.com/api/mcp/asset/4011f316-def0-4787-b7a8-3f57d824185f" alt="">
+          <img class="battery-fill" src="https://www.figma.com/api/mcp/asset/9e55a030-e5ee-499c-bc7b-87fc20c29e1a" alt="">
+          <img class="battery-cap" src="https://www.figma.com/api/mcp/asset/926eec5f-109e-48ce-9ba2-6ad1d63aadd1" alt="">
+        </div>
+      </div>
+
+      <div class="cobranded">
+        <img
+          class="bestbuy-logo"
+          src="./bestbuy-logo.png"
+          alt="Best Buy"
+        >
+        <a class="back-link" href="#">Back to BestBuy</a>
+      </div>
+
+      <div class="top-nav">
+        <div class="logo" aria-label="Zip">
+          <img src="https://www.figma.com/api/mcp/asset/ed468a0b-3598-4e9e-a9d1-0e87f8bf2e84" alt="" style="left:0;top:6.56px;width:18.84px;height:9.85px">
+          <img src="https://www.figma.com/api/mcp/asset/8c990d3d-2e36-4c9f-a222-bf63e15f4dc5" alt="" style="left:20.82px;top:6.56px;width:20.65px;height:9.85px">
+          <img src="https://www.figma.com/api/mcp/asset/d52757a6-b852-426c-b5ea-28446b6234b2" alt="" style="left:21.53px;top:0;width:5.61px;height:5.37px">
+          <img src="https://www.figma.com/api/mcp/asset/937af5fb-7790-4d27-ba0d-f5cb0f7718ad" alt="" style="left:41.65px;top:6.56px;width:17.18px;height:9.85px">
+          <img src="https://www.figma.com/api/mcp/asset/47007eb1-7040-4739-a816-516763b71d5a" alt="" style="left:58.59px;top:6.68px;width:0.93px;height:1.19px">
+          <img src="https://www.figma.com/api/mcp/asset/73bc1178-9453-4bf6-817a-b886d77e530e" alt="" style="left:59.72px;top:6.68px;width:1.28px;height:1.19px">
+        </div>
+        <span class="close" aria-hidden="true">&times;</span>
+      </div>
+    </section>
+
+    <section class="content">
+      <article class="card">
+        <h1 class="plan-head">Select your payment plan</h1>
+        <div class="options">
+          <div class="option">
+            <div class="radio active"></div>
+            <div>
+              <div class="line1">4 payments of $101.50</div>
+              <div class="line2">Pay bi-weekly over 6 weeks.</div>
+              <div class="social-proof">Most BestBuy shoppers choose this plan</div>
+            </div>
+          </div>
+          <div class="option">
+            <div class="radio"></div>
+            <div>
+              <div class="line1">8 payments of $52.00</div>
+              <div class="line2">Pay bi-weekly over 14 weeks.</div>
+            </div>
+          </div>
+        </div>
+        <a href="#" class="learn">Learn more about payment options</a>
+        <div class="plan-grid">
+          <div class="row-label">
+            <span>Payment plan</span>
+            <img class="arrow" src="https://www.figma.com/api/mcp/asset/0f076e05-c29b-42f3-bc87-94a21854aace" alt="">
+          </div>
+          <div class="installments">
+            <div class="inst today">
+              <div class="ring-wrap">
+                <img class="base" src="https://www.figma.com/api/mcp/asset/67836e99-ce7b-4c0c-a12b-e3cd90677731" alt="">
+                <img class="overlay" src="https://www.figma.com/api/mcp/asset/4cdfffb8-e0a7-47e6-b392-da750d9478a6" alt="" style="left:16px;top:0;width:16px;height:16px">
+              </div>
+              <strong>$101.50</strong>
+              <em>Due today</em>
+            </div>
+            <div class="inst">
+              <div class="ring-wrap">
+                <img class="base" src="https://www.figma.com/api/mcp/asset/67836e99-ce7b-4c0c-a12b-e3cd90677731" alt="">
+                <img class="overlay" src="https://www.figma.com/api/mcp/asset/a31bc069-4470-497e-8cba-a7e90f0e078d" alt="" style="left:16px;top:0;width:16px;height:32px">
+              </div>
+              <span>$101.50</span>
+              <em>July 9th</em>
+            </div>
+            <div class="inst">
+              <div class="ring-wrap">
+                <img class="base" src="https://www.figma.com/api/mcp/asset/07b26191-e2e3-4aac-9974-49cc2efd90af" alt="">
+                <img class="overlay" src="https://www.figma.com/api/mcp/asset/a42cb965-416d-425b-a7f0-9840de58a424" alt="" style="inset:0;width:32px;height:32px">
+              </div>
+              <span>$101.50</span>
+              <em>July 24th</em>
+            </div>
+            <div class="inst">
+              <div class="ring-wrap">
+                <img class="base" src="https://www.figma.com/api/mcp/asset/67836e99-ce7b-4c0c-a12b-e3cd90677731" alt="">
+                <img class="overlay" src="https://www.figma.com/api/mcp/asset/0e8903ec-0d38-4778-8038-bf07f970aa14" alt="" style="inset:0;width:32px;height:32px">
+              </div>
+              <span>$101.50</span>
+              <em>Aug 6th</em>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="card simple-row">
+        <span>Order total</span>
+        <span style="display:flex;align-items:center;gap:10px">
+          <span>$406.00</span>
+          <img class="arrow" src="https://www.figma.com/api/mcp/asset/3777843b-a594-4fdb-8f94-b2a97a87141b" alt="">
+        </span>
+      </article>
+
+      <article class="card pay-method">
+        <div class="pay-left">
+          <img class="visa-badge" src="https://www.figma.com/api/mcp/asset/2cab1baa-ccca-4ec2-8625-c9eb8bee6057" alt="Visa">
+          <span class="pm1">Visa</span>
+          <span class="pm2">Debit •••• 1186</span>
+        </div>
+        <img class="arrow" src="https://www.figma.com/api/mcp/asset/ea0e7476-99ef-44e2-a447-34a9b5aa484c" alt="">
+      </article>
+
+      <p class="disclaimer">
+        By tapping "Agree and confirm payment" I acknowledge I have read the
+        <a href="#">Truth in Lending Disclosure</a> and I grant Zip full authorization to charge my debit or
+        credit card on or after the payment due dates shown above. By tapping Agree and continue, I agree to the
+        <a href="#">Terms, Policies and Agreements</a>. <strong>Late Charge:</strong> If a payment is late you will charged $7.00.
+        Loans are originated by WebBank.
+      </p>
+
+      <button class="cta">Agree and confirm payment</button>
+    </section>
+
+    <footer class="footer">© 2025 Zip · Terms · Privacy</footer>
+  </main>
+  </div>
+
+  <aside class="variation-rail" aria-label="Variation selector">
+    <button class="variation-btn active" data-variation-target="default">Control</button>
+    <button class="variation-btn" data-variation-target="bestbuy">Co-branded</button>
+    <button class="variation-btn" data-variation-target="v3">Co-branded + Social</button>
+    <button class="variation-btn" data-variation-target="v4">Variation 4</button>
+  </aside>
+
+  <script>
+    document.body.setAttribute("data-variation", "default");
+    const buttons = Array.from(document.querySelectorAll(".variation-btn"));
+    buttons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const target = button.getAttribute("data-variation-target");
+        const variation = target === "default" || target === "bestbuy" || target === "v3" ? target : "default";
+        document.body.setAttribute("data-variation", variation);
+        buttons.forEach((b) => b.classList.remove("active"));
+        button.classList.add("active");
+      });
+    });
+  </script>
+</body>
+</html>
